@@ -147,14 +147,15 @@ public final class ApiClient {
       response = http.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
     } catch (java.net.ConnectException e) {
       throw new Failure(0, "NO_SERVER", "The RHRMS server is not answering on " + baseUrl
-          + ". Nothing was saved. Ask whoever set up this computer to start it "
+          + ". No request was sent. Ask whoever set up this computer to start it "
           + "(scripts/start_server.sh).", null);
     } catch (java.io.IOException e) {
       throw new Failure(0, "NETWORK", "The connection to the server broke: " + e.getMessage()
-          + ". Nothing was saved. Try again.", null);
+          + ". The result could not be confirmed; check the record before retrying.", null);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
-      throw new Failure(0, "INTERRUPTED", "That was interrupted. Nothing was saved.", null);
+      throw new Failure(0, "INTERRUPTED", "That was interrupted. The result could not be confirmed; "
+          + "check the record before retrying.", null);
     }
 
     Map<String, Object> parsed;
@@ -162,7 +163,8 @@ public final class ApiClient {
       parsed = Json.parseObject(response.body());
     } catch (RuntimeException e) {
       throw new Failure(response.statusCode(), "BAD_REPLY",
-          "The server sent something this terminal could not read. Nothing was saved.", null);
+          "The server sent something this terminal could not read. The result could not be confirmed; "
+              + "check the record before retrying.", null);
     }
 
     if (response.statusCode() >= 400) {
