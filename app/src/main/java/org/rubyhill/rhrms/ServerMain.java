@@ -172,6 +172,7 @@ public final class ServerMain {
       }
 
       String body = readBody(exchange);
+      requireJsonContentType(headers, body);
       Map<String, Object> parsed = Req.parseBody(body);
       Map<String, String> query = Req.parseQuery(rawQuery);
       String token = bearerToken(headers);
@@ -224,6 +225,15 @@ public final class ServerMain {
     String trimmed = auth.trim();
     if (trimmed.regionMatches(true, 0, "Bearer ", 0, 7)) return trimmed.substring(7).trim();
     return trimmed.isEmpty() ? null : trimmed;      // accept a bare token too, for curl by hand
+  }
+
+  /** Body-bearing API requests must declare JSON so alternate clients fail predictably. */
+  private static void requireJsonContentType(Map<String, String> headers, String body) {
+    if (body.isBlank()) return;
+    String contentType = headers.get("content-type");
+    if (contentType == null || !contentType.toLowerCase(Locale.ROOT).startsWith("application/json")) {
+      throw ApiException.badRequest("Requests with a body must use Content-Type: application/json.");
+    }
   }
 
   /** Which terminal this was, for the login trail: "rhrms-term/127.0.0.1". */

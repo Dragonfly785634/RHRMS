@@ -445,9 +445,15 @@ final class AdoptionApi {
 
     return ctx.db().tx(req.role(), req.userId(),
         req.reason() == null ? "Decision on application " + appId : req.reason(), null, c -> {
-      Map<String, Object> app = requireApplication(c, appId);
+      // Lock the application row before reading its status. Two directors deciding at once must
+      // see one another's committed decision rather than both appending an unlinked decision.
+      Map<String, Object> app = requireApplicationForUpdate(c, appId);
       String was = String.valueOf(app.get("status"));
 
+      if (supersedes == null && List.of("APPROVED", "DENIED").contains(was)) {
+        throw ApiException.conflict("Application " + appId + " already has a decision. "
+            + "Record an override that supersedes the earlier decision so both decisions stay visible.");
+      }
       if (supersedes == null && List.of("PLACED", "WITHDRAWN", "CLOSED").contains(was)) {
         throw ApiException.badRequest("Application " + appId + " is " + was.toLowerCase()
             + " and cannot be decided. Nothing was saved.");
@@ -723,6 +729,18 @@ final class AdoptionApi {
                ap.other_pets, ap.reason_for_adopting, ap.prior_application_id,
                ap.reused_home_visit_id, ap.situation_check_note, ap.closed_reason
         FROM rhrms.application ap WHERE ap.id = ?
+        """, id);
+  }
+
+  /** Same application snapshot as requireApplication, serialized for a state-changing decision. */
+  private static Map<String, Object> requireApplicationForUpdate(Connection c, long id) throws SQLException {
+    return Ctx.queryOneOr404(c, "There is no application number " + id + ".", """
+        SELECT ap.id, ap.person_id, ap.animal_id, ap.status, ap.submitted_at, ap.version,
+               ap.housing_type, ap.landlord_allows_pets, ap.has_yard, ap.yard_fenced,
+               ap.children_count, ap.youngest_child_age, ap.elderly_in_home, ap.adults_in_home,
+               ap.other_pets, ap.reason_for_adopting, ap.prior_application_id,
+               ap.reused_home_visit_id, ap.situation_check_note, ap.closed_reason
+        FROM rhrms.application ap WHERE ap.id = ? FOR UPDATE
         """, id);
   }
 

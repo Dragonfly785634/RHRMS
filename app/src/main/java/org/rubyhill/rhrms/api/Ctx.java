@@ -92,8 +92,7 @@ public final class Ctx implements Router.Guard {
   /** Runs a query with positional parameters and returns every row as a JSON-ready map. */
   public static List<Map<String, Object>> query(Connection c, String sql, Object... params)
       throws SQLException {
-    try (PreparedStatement ps = c.prepareStatement(sql)) {
-      bind(ps, params);
+    try (PreparedStatement ps = prepare(c, sql, params)) {
       try (ResultSet rs = ps.executeQuery()) {
         return Json.rows(rs);
       }
@@ -117,8 +116,7 @@ public final class Ctx implements Router.Guard {
 
   /** A single scalar value from the first row, or null. */
   public static Object scalar(Connection c, String sql, Object... params) throws SQLException {
-    try (PreparedStatement ps = c.prepareStatement(sql)) {
-      bind(ps, params);
+    try (PreparedStatement ps = prepare(c, sql, params)) {
       try (ResultSet rs = ps.executeQuery()) {
         return rs.next() ? rs.getObject(1) : null;
       }
@@ -141,24 +139,21 @@ public final class Ctx implements Router.Guard {
    * broken that way until somebody installed RHRMS on an empty database.
    */
   public static void run(Connection c, String sql, Object... params) throws SQLException {
-    try (PreparedStatement ps = c.prepareStatement(sql)) {
-      bind(ps, params);
+    try (PreparedStatement ps = prepare(c, sql, params)) {
       ps.execute();
     }
   }
 
   /** An INSERT or UPDATE; returns how many rows it touched. Not for a SELECT - see run(). */
   public static int update(Connection c, String sql, Object... params) throws SQLException {
-    try (PreparedStatement ps = c.prepareStatement(sql)) {
-      bind(ps, params);
+    try (PreparedStatement ps = prepare(c, sql, params)) {
       return ps.executeUpdate();
     }
   }
 
   /** An INSERT ... RETURNING id. */
   public static long insertReturningId(Connection c, String sql, Object... params) throws SQLException {
-    try (PreparedStatement ps = c.prepareStatement(sql)) {
-      bind(ps, params);
+    try (PreparedStatement ps = prepare(c, sql, params)) {
       try (ResultSet rs = ps.executeQuery()) {
         if (!rs.next()) throw new SQLException("The insert returned no id: " + sql);
         return rs.getLong(1);
@@ -166,10 +161,19 @@ public final class Ctx implements Router.Guard {
     }
   }
 
-  /**
-   * Binds parameters. Every statement in this application is parameterised (spec section 13):
-   * no value the user typed is ever pasted into SQL text.
-   */
+  /** Creates a statement and binds all values before the caller executes it. */
+  private static PreparedStatement prepare(Connection c, String sql, Object... params) throws SQLException {
+    PreparedStatement ps = c.prepareStatement(sql);
+    try {
+      bind(ps, params);
+      return ps;
+    } catch (SQLException | RuntimeException e) {
+      ps.close();
+      throw e;
+    }
+  }
+
+  /** Binds values without ever interpolating user input into SQL text (spec section 13). */
   private static void bind(PreparedStatement ps, Object... params) throws SQLException {
     for (int i = 0; i < params.length; i++) {
       Object p = params[i];

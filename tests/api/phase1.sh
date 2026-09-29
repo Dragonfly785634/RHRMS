@@ -380,6 +380,14 @@ post "$SAM" /api/applications "{\"personId\":$CATE,\"animalId\":4}"
 expect_status 201 "a second person may apply for the same animal"
 get "$SAM" '/api/applications?animal=4&open=true'
 expect_field count 2 "both applications are open at once"
+
+get "$SAM" '/api/applications?animal=4&open=perhaps'
+expect_refused "an invalid boolean query value is refused"
+expect_in "must be true or false" "and explains the accepted values"
+
+post "$SAM" /api/people '{"firstName":"Duplicate","lastName":"Key","lastName":"Other"}'
+expect_refused "a JSON request with a duplicate field is refused"
+expect_in "Duplicate object key" "and identifies the malformed field"
 fi
 
 # =============================================================================

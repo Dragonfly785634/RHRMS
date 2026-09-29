@@ -53,6 +53,9 @@ final class AuthApi {
       String hash = Passwords.hash(password);
 
       long id = ctx.db().tx(Role.DIRECTOR, null, null, null, c -> {
+        // First-run is a one-time state transition. Serialize competing bootstrap requests so
+        // two people cannot both observe an empty installation and create two directors.
+        Ctx.run(c, "SELECT pg_advisory_xact_lock(hashtextextended('rhrms-bootstrap-director', 0))");
         // Allowed exactly once, when staff_user is empty. After that the only way to make an
         // account is POST /api/users as a logged-in director, so this is not a way in later.
         long accounts = ((Number) Ctx.scalar(c, "SELECT count(*) FROM rhrms.staff_user")).longValue();

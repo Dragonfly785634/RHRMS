@@ -96,11 +96,27 @@ public final class Req {
     }
   }
 
+  /** Reads an optional ISO date from the query string without leaking a parser exception. */
+  public LocalDate queryDate(String name, LocalDate fallback) {
+    String v = queryParam(name, null);
+    if (v == null) return fallback;
+    try {
+      return LocalDate.parse(v);
+    } catch (DateTimeParseException e) {
+      throw ApiException.badRequest("'" + name + "' must be a date in YYYY-MM-DD format, but is '" + v + "'.");
+    }
+  }
+
   public int queryInt(String name, int fallback, int max) {
     String v = queryParam(name, null);
     if (v == null) return fallback;
     try {
-      return Math.min(max, Math.max(1, Integer.parseInt(v)));
+      int parsed = Integer.parseInt(v);
+      if (parsed < 1 || parsed > max) {
+        throw ApiException.badRequest("'" + name + "' must be between 1 and " + max
+            + ", but is '" + v + "'.");
+      }
+      return parsed;
     } catch (NumberFormatException e) {
       throw ApiException.badRequest("'" + name + "' must be a whole number, but is '" + v + "'.");
     }
@@ -108,7 +124,10 @@ public final class Req {
 
   public boolean queryFlag(String name) {
     String v = queryParam(name, null);
-    return v != null && (v.equalsIgnoreCase("true") || v.equals("1") || v.equalsIgnoreCase("yes"));
+    if (v == null) return false;
+    if (v.equalsIgnoreCase("true") || v.equals("1") || v.equalsIgnoreCase("yes")) return true;
+    if (v.equalsIgnoreCase("false") || v.equals("0") || v.equalsIgnoreCase("no")) return false;
+    throw ApiException.badRequest("'" + name + "' must be true or false, but is '" + v + "'.");
   }
 
   // ------------------------------------------------------------------ body fields
@@ -322,7 +341,7 @@ public final class Req {
     try {
       return URLDecoder.decode(s, StandardCharsets.UTF_8);
     } catch (IllegalArgumentException e) {
-      return s;                            // a stray % is not worth refusing the whole request
+      throw ApiException.badRequest("The query string contains invalid percent encoding.");
     }
   }
 
