@@ -73,7 +73,7 @@ The API tests need `curl` and `python3`; the terminal tests also need `script` (
 
 ## Filling in the intake form
 
-The intake screen is paper form **RH-1** (`docs/Animal_Intake_Form.pdf`), box for box and in
+The intake screen is paper form **RH-1** (`Documents/Animal_Intake_Form.pdf`), box for box and in
 the same order: animal name, came in as, kennel no., type, breed, age and whether it is exact,
 date and time in, where from, bonded with, mother if born here, the notes box, and who took the
 animal in. When it saves, it gives you the number to write in the form's **No.** box.
@@ -127,26 +127,12 @@ RHRMS/
 ├── app/          Java: the API server and the terminal client
 ├── tests/        sql/ database rules   api/ Phase 1, terminal, and import tests
 ├── Documents/    what the client gave us: interviews, form RH-1, the spreadsheet
-└── docs/         HANDOFF.md   TRACEABILITY.md   SELF_AUDIT.md
-                  SECURITY.md   LIBRARIES.md   DECISIONS.md   ROLES_AND_PASSWORDS.md
-                  SPREADSHEET_FINDINGS.md
+└── docs/         DECISIONS.md   ROLES_AND_PASSWORDS.md   SPREADSHEET_FINDINGS.md
 ```
 
 `app/target/` is Maven's build output — compiled classes, `rhrms.jar` and the dependency jars.
 It is generated, and `mvn clean` deletes it safely. Note the server's pid file and both log files
 live there too, so a clean also deletes your logs.
-
-## Handoff and submission documents
-
-- [Development setup](<Documents/Setting Up Dev Environment.md>) — WSL prerequisites and the complete startup path
-- [Handoff guide](docs/HANDOFF.md) — architecture, invariants, extension workflow, and operational notes
-- [Traceability](Personal/TRACEABILITY.md) — Phase 1 features, rubric evidence, and demonstration checklist
-- [Security model](docs/SECURITY.md) — permissions, database roles, audit behavior, and review checklist
-- [Libraries](docs/LIBRARIES.md) — dependency purpose and change procedure
-- [Administrator guide](docs/ADMIN_GUIDE.md) — backup, restore, configuration, and operations
-- [Quick guide](docs/QUICK_GUIDE.md) — daily staff commands and workflows
-- [Submission checklist](Personal/SUBMISSION_CHECKLIST.md) — final staging, verification, and demonstration steps
-- [Self-audit](Personal/SELF_AUDIT.md) — the required three understanding buckets
 
 ---
 
