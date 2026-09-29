@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Terse, one line per request, to the console. The server is usually run from a terminal
+     window that somebody is looking at, so there is no file appender by default. -->
+<configuration>
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss} %-5level %logger{0} - %msg%n</pattern>
+    </encoder>
+  </appender>
+  <!-- HikariCP is chatty at INFO about pool lifecycle; we only want its problems. -->
+  <logger name="com.zaxxer.hikari" level="WARN"/>
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+  </root>
+</configuration>
