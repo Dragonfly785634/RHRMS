@@ -96,6 +96,17 @@ public final class Req {
     }
   }
 
+  /** Reads an optional ISO date from the query string without leaking a parser exception. */
+  public LocalDate queryDate(String name, LocalDate fallback) {
+    String v = queryParam(name, null);
+    if (v == null) return fallback;
+    try {
+      return LocalDate.parse(v);
+    } catch (DateTimeParseException e) {
+      throw ApiException.badRequest("'" + name + "' must be a date in YYYY-MM-DD format, but is '" + v + "'.");
+    }
+  }
+
   public int queryInt(String name, int fallback, int max) {
     String v = queryParam(name, null);
     if (v == null) return fallback;
@@ -330,7 +341,7 @@ public final class Req {
     try {
       return URLDecoder.decode(s, StandardCharsets.UTF_8);
     } catch (IllegalArgumentException e) {
-      return s;                            // a stray % is not worth refusing the whole request
+      throw ApiException.badRequest("The query string contains invalid percent encoding.");
     }
   }
 

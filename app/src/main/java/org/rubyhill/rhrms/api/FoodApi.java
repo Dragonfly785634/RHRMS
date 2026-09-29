@@ -333,13 +333,8 @@ final class FoodApi {
       if (meals < 1 || meals > 4) throw ApiException.badRequest("Meals per day has to be 1 to 4.");
       return ctx.write(req, c -> {
         AnimalApi.requireAnimal(c, animalId);
-        Map<String, Object> food = Ctx.queryOne(c,
-            "SELECT id, name, active FROM rhrms.food_product WHERE id = ?", productId);
-        if (food == null) throw ApiException.notFound("There is no food product number " + productId + ".");
-        if (!Boolean.TRUE.equals(food.get("active"))) {
-          throw ApiException.badRequest("Food product " + food.get("name")
-              + " is inactive. Choose an active supply item for this diet.");
-        }
+        Map<String, Object> food = requireActiveFood(c, productId,
+            "set a diet for this animal");
         // One current portion per animal per food (unique index). Replacing a portion ends the
         // old one rather than editing it, so the forecast history stays honest.
         Ctx.update(c, "UPDATE rhrms.diet SET valid_to = CURRENT_DATE"
@@ -380,13 +375,8 @@ final class FoodApi {
       }
       return ctx.write(req, c -> {
         AnimalApi.requireAnimal(c, animalId);
-        Map<String, Object> food = Ctx.queryOne(c,
-            "SELECT name, kind, active FROM rhrms.food_product WHERE id = ?", productId);
-        if (food == null) throw ApiException.notFound("There is no food product number " + productId + ".");
-        if (!Boolean.TRUE.equals(food.get("active"))) {
-          throw ApiException.badRequest("Food product " + food.get("name")
-              + " is inactive and cannot receive a new prescription.");
-        }
+        Map<String, Object> food = requireActiveFood(c, productId,
+            "record a prescription for this animal");
         if (!"PRESCRIPTION".equals(food.get("kind"))) {
           throw ApiException.badRequest("That food is not a prescription food, so no prescription is needed. "
               + "Just set a portion for the animal.");
@@ -429,13 +419,7 @@ final class FoodApi {
       int bags = req.has("bags") ? req.requireInt("bags", "How many bags") : 1;
       if (bags <= 0) throw ApiException.badRequest("Ask for at least one bag.");
       return ctx.write(req, c -> {
-        Map<String, Object> product = Ctx.queryOne(c,
-            "SELECT name, active FROM rhrms.food_product WHERE id = ?", productId);
-        if (product == null) throw ApiException.notFound("There is no food product number " + productId + ".");
-        if (!Boolean.TRUE.equals(product.get("active"))) {
-          throw ApiException.badRequest("Food product " + product.get("name")
-              + " is inactive and cannot be ordered.");
-        }
+        requireActiveFood(c, productId, "order this food");
         long id = Ctx.insertReturningId(c,
             "INSERT INTO rhrms.food_order(food_product_id, bags, requested_by, note)"
                 + " VALUES (?, ?, ?, ?) RETURNING id", productId, bags, req.userId(), req.optText("note"));
@@ -588,6 +572,18 @@ final class FoodApi {
         return Res.created(out.put("message", "Donation recorded."));
       });
     });
+  }
+
+  /** Shared guard for writes that must refer to a currently usable supply item. */
+  private static Map<String, Object> requireActiveFood(Connection c, long productId, String action)
+      throws SQLException {
+    Map<String, Object> food = Ctx.queryOne(c,
+        "SELECT id, name, kind, active FROM rhrms.food_product WHERE id = ?", productId);
+    if (food == null) throw ApiException.notFound("There is no food product number " + productId + ".");
+    if (!Boolean.TRUE.equals(food.get("active"))) {
+      throw ApiException.badRequest("Food product " + food.get("name") + " is inactive; it cannot " + action + ".");
+    }
+    return food;
   }
 
   // =================================================================== helpers

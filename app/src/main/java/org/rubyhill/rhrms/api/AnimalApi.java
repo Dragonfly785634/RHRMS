@@ -192,8 +192,7 @@ final class AnimalApi {
         "possible duplicates before an intake is saved (IN-3)", req -> {
       String name = req.queryParam("name", null);
       String species = req.queryParam("species", null);
-      LocalDate intakeDate = req.queryParam("intakeDate", null) == null
-          ? LocalDate.now() : LocalDate.parse(req.queryParam("intakeDate", null));
+      LocalDate intakeDate = req.queryDate("intakeDate", LocalDate.now());
       return ctx.read(req, c -> Res.list("possibleDuplicates", duplicates(c, name, species, intakeDate)));
     });
 
