@@ -122,10 +122,14 @@ public final class AuthService {
    */
   public Session resolve(String token, String client) throws SQLException {
     int idle = settings.idleMinutes();
-    return sessions.lookup(token, idle).orElseThrow(() ->
+    Session session = sessions.lookup(token, idle).orElseThrow(() ->
         ApiException.notLoggedIn("This session is no longer valid, so nothing was done. "
             + "A session ends after " + idle + " minutes of no activity, when the server is "
             + "restarted, or when the director changes your account. Log in again."));
+    // Authentication is activity. Refresh only after the idle check so an expired token cannot
+    // keep itself alive merely by being presented repeatedly.
+    session.touch();
+    return session;
   }
 
   // ----------------------------------------------------- step-up confirmation

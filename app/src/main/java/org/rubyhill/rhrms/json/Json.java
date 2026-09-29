@@ -173,6 +173,9 @@ public final class Json {
         skipWhitespace();
         expect(':');
         skipWhitespace();
+        if (m.containsKey(key)) {
+          throw new JsonException("Duplicate object key '" + key + "' at position " + (pos - 1));
+        }
         m.put(key, value());
         skipWhitespace();
         char c = next();
