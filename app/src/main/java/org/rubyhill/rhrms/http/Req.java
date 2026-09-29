@@ -100,7 +100,12 @@ public final class Req {
     String v = queryParam(name, null);
     if (v == null) return fallback;
     try {
-      return Math.min(max, Math.max(1, Integer.parseInt(v)));
+      int parsed = Integer.parseInt(v);
+      if (parsed < 1 || parsed > max) {
+        throw ApiException.badRequest("'" + name + "' must be between 1 and " + max
+            + ", but is '" + v + "'.");
+      }
+      return parsed;
     } catch (NumberFormatException e) {
       throw ApiException.badRequest("'" + name + "' must be a whole number, but is '" + v + "'.");
     }
@@ -108,7 +113,10 @@ public final class Req {
 
   public boolean queryFlag(String name) {
     String v = queryParam(name, null);
-    return v != null && (v.equalsIgnoreCase("true") || v.equals("1") || v.equalsIgnoreCase("yes"));
+    if (v == null) return false;
+    if (v.equalsIgnoreCase("true") || v.equals("1") || v.equalsIgnoreCase("yes")) return true;
+    if (v.equalsIgnoreCase("false") || v.equals("0") || v.equalsIgnoreCase("no")) return false;
+    throw ApiException.badRequest("'" + name + "' must be true or false, but is '" + v + "'.");
   }
 
   // ------------------------------------------------------------------ body fields
