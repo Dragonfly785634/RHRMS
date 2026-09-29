@@ -1,0 +1,62 @@
+# ---------------------------------------------------------------------------
+# RHRMS — what does not belong in version control
+#
+# Two rules behind this list:
+#   - generated things are not committed, because they go stale and conflict on
+#     every merge while adding nothing a rebuild would not give you
+#   - anything that could hold a real password is not committed, even when the
+#     copy on this machine only holds a development one
+# ---------------------------------------------------------------------------
+
+# ---- Maven build output ---------------------------------------------------
+# app/target/ holds the compiled classes, rhrms.jar and the seven dependency
+# jars copied next to it: roughly 3.5 MB, all of it rebuilt by
+# ./scripts/build_app.sh in a few seconds. This is 85 of the files git would
+# otherwise stage today.
+target/
+
+# ---- real configuration, as opposed to the template ----------------------
+# AppConfig looks for rhrms.properties in the working directory, then the
+# parent, then app/, before falling back to the copy inside the jar. Those
+# first paths are where a real front-desk install puts its own file, with the
+# rescue's actual database passwords in it.
+#
+# The template at app/src/main/resources/rhrms.properties IS committed — it
+# carries the documented development passwords and is the thing you copy and
+# edit. These three entries cover the copies, not the template.
+/rhrms.properties
+/app/rhrms.properties
+/app/target/rhrms.properties
+
+# ---- PostgreSQL credentials ----------------------------------------------
+# setup_db.sh writes the role passwords to $PGPASSFILE, which defaults to
+# ~/.pgpass, outside this repository. These entries exist for the case where
+# somebody points PGPASSFILE at a path inside it.
+.pgpass
+*.pgpass
+
+# ---- runtime state and logs ----------------------------------------------
+# The server's pid and log live in app/target/ (already covered above), but
+# Crash.java falls back to the working directory when it cannot write beside
+# the jar, so rhrms-terminal.log can appear at the repository root.
+*.log
+rhrms-server.pid
+
+# ---- generated from the spreadsheet --------------------------------------
+# scripts/import/read_master.py writes this from
+# Documents/MASTER copy FINAL (2).xlsx. Both the script and the spreadsheet are
+# committed, so the transcription is reproducible and does not need to be.
+/scripts/import/master_verbatim.sql
+
+# ---- editors and IDEs -----------------------------------------------------
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*~
+
+# ---- operating systems ----------------------------------------------------
+.DS_Store
+Thumbs.db
