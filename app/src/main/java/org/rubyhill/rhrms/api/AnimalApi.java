@@ -61,7 +61,11 @@ final class AnimalApi {
 
     r.route("POST", "/api/kennels/{id}/service", Perm.KENNEL_SERVICE,
         "take a kennel out of service, or put it back", req -> {
-      int kennelId = (int) req.pathId("id");
+      long rawKennelId = req.pathId("id");
+      if (rawKennelId < 1 || rawKennelId > Integer.MAX_VALUE) {
+        throw ApiException.badRequest("'" + rawKennelId + "' is not a valid kennel number.");
+      }
+      int kennelId = (int) rawKennelId;
       boolean inService = req.requireBool("inService", "In service");
       String outReason = req.optText("outOfServiceReason");
       if (!inService && (outReason == null || outReason.length() < 3)) {
@@ -627,6 +631,10 @@ final class AnimalApi {
     final String behalf = onBehalf;
 
     return ctx.db().tx(req.role(), req.userId(), intakeReason(req, duplicateChoice), behalf, c -> {
+      // Serialize duplicate checks for the same intake signature. Without this transaction-level
+      // lock, two staff members can both check an empty result and create the same animal twice.
+      Ctx.run(c, "SELECT pg_advisory_xact_lock(hashtextextended(coalesce(?, '') || '|' || ? || '|' || ?::text, 0))",
+          name, species, intakeDate);
       // IN-3. Done on the server so it cannot be skipped by a different frontend: if there are
       // possible duplicates, the caller is told and has to come back having chosen.
       if (!acknowledgedDuplicates) {
