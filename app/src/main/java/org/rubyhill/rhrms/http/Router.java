@@ -46,7 +46,7 @@ public final class Router {
         throws SQLException;
   }
 
-  public record Route(String method, Pattern pattern, List<String> params, Perm perm,
+  public record Route(String method, String template, Pattern pattern, List<String> params, Perm perm,
                       boolean publicRoute, String confirmAction, String description, Handler handler) {}
 
   private final List<Route> routes = new ArrayList<>();
@@ -91,7 +91,7 @@ public final class Router {
       }
     }
     regex.append("/?$");
-    routes.add(new Route(method.toUpperCase(Locale.ROOT), Pattern.compile(regex.toString()),
+    routes.add(new Route(method.toUpperCase(Locale.ROOT), path, Pattern.compile(regex.toString()),
         List.copyOf(params), perm, publicRoute, confirmAction, description, handler));
     return this;
   }
@@ -150,8 +150,7 @@ public final class Router {
     for (Route r : routes) {
       Map<String, Object> m = new LinkedHashMap<>();
       m.put("method", r.method());
-      m.put("path", r.pattern().pattern().replaceAll("^\\^", "").replaceAll("/\\?\\$$", "")
-          .replace("([^/]+)", "{id}").replace("\\Q", "").replace("\\E", ""));
+      m.put("path", r.template());
       m.put("permission", r.perm() == null ? "public" : r.perm().name());
       m.put("needsPasswordConfirmation", r.confirmAction() != null);
       m.put("what", r.description());
